@@ -30,21 +30,26 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
         this.decade = new IntWritable();
     }
 
+    public boolean isTotalForDecade() {
+        return w1.toString().equals(WildCard) && w2.toString().equals(WildCard);
+    }
+
     public WordPair(String w1, String w2, Integer decade) {
         this(new Text(w1), new Text(w2), new IntWritable(decade));
     }
 
     public int compareTo(WordPair other) {
-        int returnVal = this.w1.compareTo(other.getW1());
-        if (returnVal != 0) {
-            return returnVal;
+        int decadeCompare = decade.compareTo(other.getDecade());
+        if (decadeCompare == 0) {
+            int w1Compare = w1.compareTo(other.getW1());
+            if (w1Compare == 0) {
+                return w2.compareTo(other.getW2());
+            } else {
+                return w1Compare;
+            }
+        } else {
+            return decadeCompare;
         }
-        if (this.w2.toString().equals("*")) {
-            return -1;
-        } else if (other.getW2().toString().equals("*")) {
-            return 1;
-        }
-        return this.w2.compareTo(other.getW2());
     }
 
     public static WordPair read(DataInput in) throws IOException {
@@ -67,11 +72,7 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
 
     @Override
     public String toString() {
-        return "WordPair{" +
-                "w1=" + w1 +
-                ", w2=" + w2 +
-                ", decade=" + decade +
-                '}';
+        return String.format("%d,%s,%s", decade.get(), w1.toString(), w2.toString());
     }
 
 //    public boolean equals(Object o) {
