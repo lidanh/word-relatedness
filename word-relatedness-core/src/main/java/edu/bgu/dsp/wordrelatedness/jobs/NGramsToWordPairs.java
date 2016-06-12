@@ -7,6 +7,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -18,14 +19,13 @@ import org.apache.hadoop.util.ToolRunner;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class NGramsToWordPairs extends Configured implements Tool {
     private static final String WordRegex = "[a-zA-Z]*";
 
-    public static class JobMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
+    private static class JobMapper extends Mapper<LongWritable, Text, Text, LongWritable> {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String[] splitted = value.toString().split("\t");
 
@@ -72,9 +72,6 @@ public class NGramsToWordPairs extends Configured implements Tool {
             // Remove stopwords
             words.removeAll(Utils.stopWords);
 
-            // The word we will compare to
-            int middle_word_index;
-
             // Remove all empty strings
             words.removeAll(Collections.singleton(""));
 
@@ -84,10 +81,13 @@ public class NGramsToWordPairs extends Configured implements Tool {
             }
 
             // decide which word is middle
-            middle_word_index = getMiddleWordIndex(words);
+            int middle_word_index = getMiddleWordIndex(words);
 
             // middle word
             String middle_word = words.get(middle_word_index);
+
+//            if (Utils.stopWords.contains(middle_word) || !middle_word.matches(WordRegex))
+//                return;
 
             // Remove it from the rest
             words.remove(middle_word);
@@ -97,21 +97,20 @@ public class NGramsToWordPairs extends Configured implements Tool {
             // middle,*
             // word,*
             for (String word : words) {
-                Text toWriteMiddleWord;
-                // Lexicography order
-                if (middle_word.compareTo(word) < 0) {
-                    toWriteMiddleWord = new Text(middle_word + "," + word);
-                } else {
-                    toWriteMiddleWord = new Text(word + "," + middle_word);
-                }
-                Text toWritemiddleStar = new Text(middle_word + ",*");
-                Text toWriteWordStar = new Text(word + ",*");
-                Text twoStars = new Text("*,*");
+//                if (word.equals(middle_word))
+//                    continue;
 
-                writeToContext(context, new LongWritable(decade), new LongWritable(occurrences), twoStars);
-                writeToContext(context, new LongWritable(decade), new LongWritable(occurrences), toWriteMiddleWord);
-                writeToContext(context, new LongWritable(decade), new LongWritable(occurrences), toWritemiddleStar);
-                writeToContext(context, new LongWritable(decade), new LongWritable(occurrences), toWriteWordStar);
+//                if (Utils.stopWords.contains(word) || !word.matches(WordRegex))
+//                    continue;
+
+                // emit <<*, *>, count> for counting n (total number of words per decade)
+                context.write(new Text(String.format("%d,*,*", decade)), new LongWritable(occurrences));
+                // emit <<*, w1>, count> for counting c(w2)
+                context.write(new Text(String.format("%d,%s,*", decade, middle_word)), new LongWritable(occurrences));
+                // emit <<*, w2>, count> for counting c(w1)
+                context.write(new Text(String.format("%d,%s,*", decade, word)), new LongWritable(occurrences));
+                // emit <<w1, w2>, count>
+                context.write(new Text(String.format("%d,%s,%s", decade, middle_word.compareTo(word) < 0 ? middle_word : word, middle_word.compareTo(word) < 0 ? word : middle_word)), new LongWritable(occurrences));
             }
         }
     }
@@ -128,42 +127,47 @@ public class NGramsToWordPairs extends Configured implements Tool {
         return middle_word_index;
     }
 
-    private static void writeToContext(Mapper<LongWritable, Text, Text, LongWritable>.Context context, LongWritable decade, LongWritable times, Text toWrite) throws IOException, InterruptedException {
-        context.write(new Text(decade.toString()+","+toWrite), times);
-    }
-
-    public static class JobCombiner extends Reducer<Text, LongWritable, Text, LongWritable> {
+    private static class JobCombiner extends Reducer<Text, LongWritable, Text, LongWritable> {
         public void reduce(Text key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
             // For each word, sum all its maps values, merge it to "reduced" map
-            LongWritable allTimes = new LongWritable();
-            for (LongWritable val : values) {
-                allTimes.set(allTimes.get() + val.get());
+            long sum = 0;
+            for (LongWritable value : values) {
+                sum += value.get();
             }
-            context.write(key, allTimes);
+
+            context.write(key, new LongWritable(sum));
         }
     }
 
-    public static class JobReducer extends Reducer<Text, LongWritable, Text, LongWritable> {
+    private static class JobPartitioner extends Partitioner<Text, LongWritable> {
+        public int getPartition(Text wordPair, LongWritable longWritable, int numPartitions) {
+            return Integer.parseInt(wordPair.toString().split(",")[0]) % numPartitions;
+        }
+    }
+
+    private static class JobReducer extends Reducer<Text, LongWritable, Text, LongWritable> {
         public void reduce(Text key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
             // For each word, sum all its maps values, merge it to "reduced" map
-            LongWritable allTimes = new LongWritable();
-            for (LongWritable val: values) {
-                allTimes.set(allTimes.get()+val.get());
+            long total = 0;
+
+            for (LongWritable value : values) {
+                total += value.get();
             }
-//            Utils.updateCounter(key, context);
-            context.write(key, allTimes);
+
+            context.write(key, new LongWritable(total));
         }
     }
 
-    public Job getJobWiring(String inputPath, String outputPath) throws IOException {
+    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
         Job job = new Job(new Configuration(), NGramsToWordPairs.class.getSimpleName());
 
         job.setJarByClass(NGramsToWordPairs.class);
 
         job.setMapperClass(JobMapper.class);
         job.setCombinerClass(JobCombiner.class);
+        job.setPartitionerClass(JobPartitioner.class);
         job.setReducerClass(JobReducer.class);
 
         job.setOutputKeyClass(Text.class);

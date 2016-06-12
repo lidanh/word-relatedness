@@ -91,7 +91,7 @@ public class NGramsToWordPairsOld extends Configured implements Tool {
                 context.write(new WordPair(midWord, WordPair.WildCard, decade), new LongWritable(occurrences));
                 // emit <<*, w2>, count> for counting c(w2)
                 context.write(new WordPair(WordPair.WildCard, currentWord, decade), new LongWritable(occurrences));
-                // emit <<*, *>, count> for counting n (total number of words per decade)
+
                 context.write(new WordPair(WordPair.WildCard, WordPair.WildCard, decade), new LongWritable(occurrences));
                 // emit <<w1, w2>, count>
                 context.write(new WordPair(midWord, currentWord, decade), new LongWritable(occurrences));
