@@ -1,7 +1,7 @@
 package edu.bgu.dsp.wordrelatedness.app;
 
-import edu.bgu.dsp.wordrelatedness.jobs.NGramsToWordPairs;
-import edu.bgu.dsp.wordrelatedness.jobs.WordPairsPMICalc;
+import edu.bgu.dsp.wordrelatedness.jobs.NGramsToWordPairsOld;
+import edu.bgu.dsp.wordrelatedness.old.jobs.WordPairsPMICalc;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -33,7 +33,7 @@ public class ExtractRelatedPairsLocal extends Configured implements Tool {
     }
 
     public int run(String[] args) throws Exception {
-        NGramsToWordPairs.main(new String[] { Input, IntermediateOutput});
+        NGramsToWordPairsOld.main(new String[] { Input, IntermediateOutput});
 
         ToolRunner.run(getConf(), new WordPairsPMICalc(), new String[] {IntermediateOutput, FinalOutput, args[0]});
 

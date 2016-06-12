@@ -74,16 +74,30 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
                 '}';
     }
 
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (o == null || getClass() != o.getClass()) return false;
+//
+//        WordPair wordPair = (WordPair) o;
+//
+//        if (w2 != null ? !w2.equals(wordPair.w2) : wordPair.w2 != null) return false;
+//        if (w1 != null ? !w1.equals(wordPair.w1) : wordPair.w1 != null) return false;
+//
+//        return true;
+//    }
+
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         WordPair wordPair = (WordPair) o;
 
-        if (w2 != null ? !w2.equals(wordPair.w2) : wordPair.w2 != null) return false;
-        if (w1 != null ? !w1.equals(wordPair.w1) : wordPair.w1 != null) return false;
+        if (w1 != null ? !w1.toString().equals(wordPair.w1.toString()) : wordPair.w1 != null) return false;
+        if (w2 != null ? !w2.toString().equals(wordPair.w2.toString()) : wordPair.w2 != null) return false;
+        return decade != null ? decade.get() == wordPair.decade.get() : wordPair.decade == null;
 
-        return true;
     }
 
     @Override
