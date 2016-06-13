@@ -1,4 +1,4 @@
-package edu.bgu.dsp.wordrelatedness.jobs;
+package edu.bgu.dsp.wordrelatedness.old.jobs;
 
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
 import org.apache.commons.io.IOUtils;

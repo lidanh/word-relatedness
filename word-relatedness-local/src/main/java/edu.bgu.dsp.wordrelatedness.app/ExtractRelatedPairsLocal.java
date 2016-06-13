@@ -1,6 +1,6 @@
 package edu.bgu.dsp.wordrelatedness.app;
 
-import edu.bgu.dsp.wordrelatedness.jobs.NGramsToWordPairsOld;
+import edu.bgu.dsp.wordrelatedness.old.jobs.NGramsToWordPairsOld;
 import edu.bgu.dsp.wordrelatedness.old.jobs.WordPairsPMICalc;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;

@@ -1,9 +1,11 @@
 package edu.bgu.dsp.wordrelatedness.jobs;
 
+import edu.bgu.dsp.wordrelatedness.domain.WordPair;
+import edu.bgu.dsp.wordrelatedness.domain.WordPairMapWritable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -13,16 +15,18 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
 
 
-public class Job2 {
+public class Job2 extends Configured implements Tool {
 
-    public static class Map extends Mapper<Text, LongWritable, Text, MapWritable> {
+    private static class JobMapper extends Mapper<Text, LongWritable, Text, WordPairMapWritable> {
         // Map for writing to context
-        MapWritable toWrite = new MapWritable();
+        WordPairMapWritable toWrite = new WordPairMapWritable();
 
         public void map(Text key, LongWritable value, Context context) throws IOException, InterruptedException {
             String[] words = key.toString().split(",");
@@ -50,19 +54,18 @@ public class Job2 {
         }
     }
 
-
-    public static class Reduce extends Reducer<Text, MapWritable, Text, MapWritable> {
+    private static class JobReducer extends Reducer<Text, WordPairMapWritable, Text, WordPairMapWritable> {
         String currentStarWord = null;
         LongWritable currentStarCount = null;
 
 
 
-        public void reduce(Text key, Iterable<MapWritable> values, Context context) throws IOException, InterruptedException {
+        public void reduce(Text key, Iterable<WordPairMapWritable> values, Context context) throws IOException, InterruptedException {
             // Map for writing to context
-            MapWritable toWrite = new MapWritable();
+            WordPairMapWritable toWrite = new WordPairMapWritable();
             // if word * : keep th value in memory
             if (key.toString().contains("*,*")) {
-                for (MapWritable value : values) {
+                for (WordPairMapWritable value : values) {
                     context.write(key, value);
                 }
                 return;
@@ -70,7 +73,7 @@ public class Job2 {
                 // Parse and get star word
                 String starWord = Utils.getStarWord(key);
 
-                for (MapWritable value : values) {
+                for (WordPairMapWritable value : values) {
                     // Get value(=count) of star word
                     LongWritable starWordCount = Utils.stringToLongWritable(value.get(key).toString());
 
@@ -87,7 +90,7 @@ public class Job2 {
             }
 
             // Else if word1 : <word2,count> : emit(word2, <word1,word2|count>, <word1,*|star_count>)
-            for (MapWritable value : values) {
+            for (WordPairMapWritable value : values) {
                 String[] year_word_count = value.get(key).toString().split(",");
                 // value : <word,count>
                 String year = year_word_count[0];
@@ -107,32 +110,50 @@ public class Job2 {
         }
     }
 
+    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
+        Job job = new Job(new Configuration(), Job2.class.getSimpleName());
 
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        job.setJarByClass(Job2.class);
 
-        Job job = new Job(conf, "Job2");
-
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(MapWritable.class);
-
-        job.setMapperClass(Map.class);
-        job.setReducerClass(Reduce.class);
+        job.setMapperClass(JobMapper.class);
+//        job.setCombinerClass(NGramsToWordPairs.JobCombiner.class);
+//        job.setPartitionerClass(NGramsToWordPairs.JobPartitioner.class);
+        job.setReducerClass(JobReducer.class);
 
         job.setSortComparatorClass(StarComparator.class);
 
-        job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(WordPairMapWritable.class);
 
-        // If out dir is already exists - delete it
-        Utils.deleteDirectory(new File(args[1]));
+        job.setInputFormatClass(SequenceFileInputFormat.class); // LZO Compressed files
+        job.setOutputFormatClass(TextOutputFormat.class);
 
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        FileInputFormat.addInputPath(job, new Path(inputPath));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-        job.waitForCompletion(true);
-//        System.out.println(job.getCounters());
+        return job;
+    }
 
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = getJobWiring(args[0], args[1]);
+
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2)
+            throw new IllegalArgumentException("Args error");
+
+        try {
+            // If out dir is already exists - delete it
+            Utils.deleteDirectory(new File(args[1]));
+            ToolRunner.run(new Job2(), args);
+            System.exit(0);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
     }
 
 }

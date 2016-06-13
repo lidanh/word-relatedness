@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -175,7 +176,7 @@ public class NGramsToWordPairs extends Configured implements Tool {
         job.setOutputValueClass(LongWritable.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class); // LZO Compressed files
-        job.setOutputFormatClass(TextOutputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));
         FileOutputFormat.setOutputPath(job, new Path(outputPath));
@@ -200,7 +201,7 @@ public class NGramsToWordPairs extends Configured implements Tool {
             ToolRunner.run(new NGramsToWordPairs(), args);
             System.exit(0);
         } catch (Exception e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
             System.exit(1);
         }
     }
