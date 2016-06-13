@@ -39,8 +39,7 @@ public class Job2 extends Configured implements Tool {
             } else {
                 // else if key == word1,word2 : emit(word1,word1| <word1-word2, count>)
                 toWrite.put(key, value);
-                WordPair doubleW1 = new WordPair(key.getW1(), key.getW1(), key.getDecade());
-                context.write(doubleW1, toWrite);
+                context.write(key, toWrite);
             }
             toWrite.clear();
         }
@@ -74,9 +73,9 @@ public class Job2 extends Configured implements Tool {
                     return;
                 }
                 // else if key == word1-word2 : emit(word2,word2| <word1-word2, count>, <word1-*, count>)
-                WordPair doubleW2 = new WordPair(key.getW2(), key.getW2(), key.getDecade());
+                WordPair W1W2 = new WordPair(key.getW2(), key.getW1(), key.getDecade());
                 value.put(currentStarWord, currentStarCount);
-                context.write(doubleW2, value);
+                context.write(W1W2, value);
             }
         }
     }
