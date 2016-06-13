@@ -1,8 +1,6 @@
 package edu.bgu.dsp.wordrelatedness.jobs;
 
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,20 +27,8 @@ enum COUNTER {
     D2000
 };
 
-
-// Return first the word,* if exists, else lexicographic
-class StarComparator extends WritableComparator {
-    protected StarComparator() {
-        super(Text.class, true);
-    }
-
-    @Override
-    public int compare(WritableComparable a, WritableComparable b) {
-        return -1 * super.compare(a, b);
-    }
-}
-class OppositeComparator extends WritableComparator {
-    protected OppositeComparator() {
+class DoubleReverseComparator extends WritableComparator {
+    protected DoubleReverseComparator() {
         super(DoubleWritable.class, true);
     }
 
@@ -125,73 +111,6 @@ public class Utils {
                 reduced.put(mwkey, mw.get(mwkey));
             }
         }
-    }
-
-    public static boolean isStar(String word) {
-        return word.endsWith("*");
-    }
-
-    public static String getStarWord(Text key) {
-        String keyStr = key.toString();
-        return keyStr.substring(0, keyStr.length() - 2);
-    }
-
-    public static LongWritable stringToLongWritable(String s) {
-        return new LongWritable(Integer.parseInt(s));
-    }
-
-    public static Text getKeyFromValue(MapWritable value) {
-        for (Writable key : value.keySet()) {
-            if (!key.toString().contains("*")) {
-                return (Text) key;
-            }
-        }
-        return null;
-    }
-
-    public static void updateCounter(Text key, Reducer.Context context) {
-        String decade = key.toString().substring(0, 4);
-        switch (decade) {
-            case "1900":
-                context.getCounter(COUNTER.D1900).increment(1);
-                break;
-            case "1910":
-                context.getCounter(COUNTER.D1910).increment(1);
-                break;
-            case "1920":
-                context.getCounter(COUNTER.D1920).increment(1);
-                break;
-            case "1930":
-                context.getCounter(COUNTER.D1930).increment(1);
-                break;
-            case "1940":
-                context.getCounter(COUNTER.D1940).increment(1);
-                break;
-            case "1950":
-                context.getCounter(COUNTER.D1950).increment(1);
-                break;
-            case "1960":
-                context.getCounter(COUNTER.D1960).increment(1);
-                break;
-            case "1970":
-                context.getCounter(COUNTER.D1970).increment(1);
-                break;
-            case "1980":
-                context.getCounter(COUNTER.D1980).increment(1);
-                break;
-            case "1990":
-                context.getCounter(COUNTER.D1990).increment(1);
-                break;
-            case "2000":
-                context.getCounter(COUNTER.D2000).increment(1);
-                break;
-            default:
-                break;
-        }
-    }
-
-    public static void updateNCounter(LongWritable starWordCount, Mapper.Context context) {
-        context.getCounter(COUNTER.N).increment(starWordCount.get());
     }
 
     public static Map calcFMeasure(String filePath) {

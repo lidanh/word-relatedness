@@ -23,7 +23,7 @@ import java.io.IOException;
 
 public class Job2 extends Configured implements Tool {
 
-    private static class JobMapper extends Mapper<WordPair, LongWritable, WordPair, WordPairMapWritable> {
+    static class JobMapper extends Mapper<WordPair, LongWritable, WordPair, WordPairMapWritable> {
         // Map for writing to context
         WordPairMapWritable toWrite = new WordPairMapWritable();
 
@@ -54,7 +54,7 @@ public class Job2 extends Configured implements Tool {
         else if key == word1-word2
              emit(word2| <word1-word2, count>, <word1-*, count>)
      */
-    private static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, WordPairMapWritable> {
+    static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, WordPairMapWritable> {
         Text currentStarWord = null;
         LongWritable currentStarCount = null;
 

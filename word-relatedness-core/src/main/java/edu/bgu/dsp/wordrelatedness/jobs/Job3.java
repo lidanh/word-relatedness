@@ -11,7 +11,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,24 +51,20 @@ public class Job3 {
         long N = 0;
 
         public void reduce(WordPair key, Iterable<WordPairMapWritable> values, Context context) throws IOException, InterruptedException {
-
-
-
             // calc PMI
             stars = 0;
             both = 0;
             quotient = 0;
             logVal = 0;
+
             if (key.toString().contains("*,*")) {
                 N = Long.parseLong(values.iterator().next().get(key).toString());
                 return;
             }
             for (MapWritable value : values) {
-                System.out.print(key+"\t");
-                System.out.println(value);
 
                 for (Writable wordsCount : value.keySet()) {
-                    if (wordsCount.toString().contains("*")) {
+                    if (wordsCount.toString().contains(",")) {
                         both += Long.parseLong(value.get(wordsCount).toString());
                     } else {
                         stars += Math.log(Long.parseLong(value.get(wordsCount).toString()));
@@ -79,10 +75,7 @@ public class Job3 {
 
                 DoubleWritable PMI = new DoubleWritable(logVal);
                 context.write(key, PMI);
-//                System.out.print(key + "\t");
-//                System.out.println(PMI);
             }
-
         }
     }
 
@@ -99,10 +92,9 @@ public class Job3 {
         job.setMapperClass(Map.class);
         job.setReducerClass(Reduce.class);
 
-//        job.setSortComparatorClass(StarComparator.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
+        job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
         // If out dir is already exists - delete it
         Utils.deleteDirectory(new File(args[1]));
