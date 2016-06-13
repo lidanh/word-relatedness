@@ -12,8 +12,6 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
     private Text w1;
     private Text w2;
     private IntWritable decade;
-    private LongWritable n;
-    private LongWritable c;
 
     /**
      * Created by lidanh on 10/06/2016.
@@ -121,19 +119,7 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
         return decade;
     }
 
-    public LongWritable getN() {
-        return n;
-    }
-
-    public LongWritable getC() {
-        return c;
-    }
-
-    public void setN(LongWritable n) {
-        this.n = n;
-    }
-
-    public void setC(LongWritable c) {
-        this.c = c;
+    public boolean isStar() {
+        return this.w2.toString().equals("*");
     }
 }

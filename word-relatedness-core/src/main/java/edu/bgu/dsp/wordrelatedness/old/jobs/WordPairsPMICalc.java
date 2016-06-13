@@ -31,9 +31,6 @@ public class WordPairsPMICalc extends Configured implements Tool {
             } else {
                 // <w1, w2> => <w2, w1>
                 WordPair wp = new WordPair(key.getW2(), key.getW1(), key.getDecade());
-                wp.setC(key.getC());
-                wp.setN(key.getN());
-
                 context.write(wp, value);
             }
         }

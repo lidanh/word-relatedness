@@ -13,7 +13,6 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -24,81 +23,60 @@ import java.io.IOException;
 
 public class Job2 extends Configured implements Tool {
 
-    private static class JobMapper extends Mapper<WordPair, LongWritable, Text, WordPairMapWritable> {
+    private static class JobMapper extends Mapper<WordPair, LongWritable, WordPair, WordPairMapWritable> {
         // Map for writing to context
         WordPairMapWritable toWrite = new WordPairMapWritable();
 
         public void map(WordPair key, LongWritable value, Context context) throws IOException, InterruptedException {
-            System.out.println(key);
-
-            // if word,* : emit(word*, count)
+            // if key == *-* :  emit (*-*| <*-*, count>)
             if (key.isTotalForDecade()) {
-                toWrite.put(new Text(key.toString()), value);
-                context.write(new Text(key.toString()), toWrite);
-                toWrite.clear();
+                toWrite.put(key, value);
+                context.write(key, toWrite);
             } else if (key.getW2().toString().equals(WordPair.WildCard)) {
-                toWrite.put(new Text(key.toString()), new Text(value.toString()));
-                context.write(new Text(key.toString()), toWrite);
-                toWrite.clear();
-                // else if word1,word2 : emit(word1, <word2, count>)
+                // else if key == word-* : emit(word-*| <word-*, count>)
+                toWrite.put(key, value);
+                context.write(key, toWrite);
             } else {
-                toWrite.put(new Text(key.getDecade().toString() + "," + key.getW1().toString()), new Text(key.getDecade() + "," + key.getW2() + "," + value.toString()));
-                context.write(new Text(key.getDecade() + "," + key.getW1()), toWrite);
-                toWrite.clear();
+                // else if key == word1,word2 : emit(word1,word1| <word1-word2, count>)
+                toWrite.put(key, value);
+                WordPair doubleW1 = new WordPair(key.getW1(), key.getW1(), key.getDecade());
+                context.write(doubleW1, toWrite);
             }
+            toWrite.clear();
         }
     }
 
-    private static class JobReducer extends Reducer<Text, WordPairMapWritable, Text, WordPairMapWritable> {
-        String currentStarWord = null;
+    /**
+     *
+     *  if key == *-*
+             emit (*-*| <*-*, count>)
+        else if key == word-*
+             emit(word-*| <word-*, count>)
+        else if key == word1-word2
+             emit(word2| <word1-word2, count>, <word1-*, count>)
+     */
+    private static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, WordPairMapWritable> {
+        Text currentStarWord = null;
         LongWritable currentStarCount = null;
 
-        public void reduce(Text key, Iterable<WordPairMapWritable> values, Context context) throws IOException, InterruptedException {
-            // Map for writing to context
-            WordPairMapWritable toWrite = new WordPairMapWritable();
-            // if word * : keep th value in memory
-            if (key.toString().contains("*,*")) {
-                for (WordPairMapWritable value : values) {
-                    context.write(key, value);
-                }
-                return;
-            } else if (Utils.isStar(key.toString())) {
-                // Parse and get star word
-                String starWord = Utils.getStarWord(key);
-
-                for (WordPairMapWritable value : values) {
-                    // Get value(=count) of star word
-                    LongWritable starWordCount = Utils.stringToLongWritable(value.get(key).toString());
-
-                    // Keep in map
-                    this.currentStarWord = starWord;
-                    this.currentStarCount = starWordCount;
-
-                    // emit <word,*|count>
-                    toWrite.put(key, starWordCount);
-                    context.write(key, toWrite);
-                    toWrite.clear();
-                }
-                return;
-            }
-
-            // Else if word1 : <word2,count> : emit(word2, <word1,word2|count>, <word1,*|star_count>)
+        public void reduce(WordPair key, Iterable<WordPairMapWritable> values, Context context) throws IOException, InterruptedException {
             for (WordPairMapWritable value : values) {
-                String[] year_word_count = value.get(key).toString().split(",");
-                // value : <word,count>
-                String year = year_word_count[0];
-                String word1 = year_word_count[1];
-                String word2 = key.toString().substring(5);
-
-                LongWritable count = Utils.stringToLongWritable(year_word_count[2]);
-
-                toWrite.put(new Text(year+","+word2 + "," + word1), count);
-                toWrite.put(new Text(year+","+word2 + ",*"), currentStarCount);
-
-                context.write(new Text(year + "," + word1), toWrite);
-                System.out.print(year + "," + word1 + "\t");
-                System.out.println(Utils.Map_to_string(toWrite));
-                toWrite.clear();
+                // if key == *-* : emit (*-*| <*-*, count>)
+                if (key.isTotalForDecade()) {
+                    context.write(key, value);
+                    return;
+                }
+                // else if key == word-* : emit(word-*| <word-*, count>)
+                if (key.isStar()){
+                    this.currentStarWord = key.getW1();
+                    this.currentStarCount = (LongWritable) value.get(key);
+                    context.write(key, value);
+                    return;
+                }
+                // else if key == word1-word2 : emit(word2,word2| <word1-word2, count>, <word1-*, count>)
+                WordPair doubleW2 = new WordPair(key.getW2(), key.getW2(), key.getDecade());
+                value.put(currentStarWord, currentStarCount);
+                context.write(doubleW2, value);
             }
         }
     }
@@ -113,9 +91,8 @@ public class Job2 extends Configured implements Tool {
 //        job.setPartitionerClass(NGramsToWordPairs.JobPartitioner.class);
         job.setReducerClass(JobReducer.class);
 
-        job.setSortComparatorClass(StarComparator.class);
 
-        job.setOutputKeyClass(Text.class);
+        job.setOutputKeyClass(WordPair.class);
         job.setOutputValueClass(WordPairMapWritable.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class); // LZO Compressed files
