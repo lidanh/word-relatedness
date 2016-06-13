@@ -24,31 +24,26 @@ import java.io.IOException;
 
 public class Job2 extends Configured implements Tool {
 
-    private static class JobMapper extends Mapper<Text, LongWritable, Text, WordPairMapWritable> {
+    private static class JobMapper extends Mapper<WordPair, LongWritable, Text, WordPairMapWritable> {
         // Map for writing to context
         WordPairMapWritable toWrite = new WordPairMapWritable();
 
-        public void map(Text key, LongWritable value, Context context) throws IOException, InterruptedException {
-            String[] words = key.toString().split(",");
-            // key : <year,word1,word2>
-            // value : <count>
-            String year = words[0];
-            String first_word = words[1];
-            String second_word = words[2];
+        public void map(WordPair key, LongWritable value, Context context) throws IOException, InterruptedException {
+            System.out.println(key);
 
             // if word,* : emit(word*, count)
-            if (first_word.equals("*") && second_word.equals("*")) {
-                toWrite.put(key, value);
-                context.write(key, toWrite);
+            if (key.isTotalForDecade()) {
+                toWrite.put(new Text(key.toString()), value);
+                context.write(new Text(key.toString()), toWrite);
                 toWrite.clear();
-            } else if (Utils.isStar(second_word)) {
-                toWrite.put(key, new Text(value.toString()));
-                context.write(key, toWrite);
+            } else if (key.getW2().toString().equals(WordPair.WildCard)) {
+                toWrite.put(new Text(key.toString()), new Text(value.toString()));
+                context.write(new Text(key.toString()), toWrite);
                 toWrite.clear();
                 // else if word1,word2 : emit(word1, <word2, count>)
             } else {
-                toWrite.put(new Text(year + "," + first_word), new Text(year + "," + second_word + "," + value.toString()));
-                context.write(new Text(year + "," + first_word), toWrite);
+                toWrite.put(new Text(key.getDecade().toString() + "," + key.getW1().toString()), new Text(key.getDecade() + "," + key.getW2() + "," + value.toString()));
+                context.write(new Text(key.getDecade() + "," + key.getW1()), toWrite);
                 toWrite.clear();
             }
         }
@@ -57,8 +52,6 @@ public class Job2 extends Configured implements Tool {
     private static class JobReducer extends Reducer<Text, WordPairMapWritable, Text, WordPairMapWritable> {
         String currentStarWord = null;
         LongWritable currentStarCount = null;
-
-
 
         public void reduce(Text key, Iterable<WordPairMapWritable> values, Context context) throws IOException, InterruptedException {
             // Map for writing to context
