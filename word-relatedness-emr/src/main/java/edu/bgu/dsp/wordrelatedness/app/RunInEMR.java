@@ -1,6 +1,7 @@
 package edu.bgu.dsp.wordrelatedness.app;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClient;
 import com.amazonaws.services.elasticmapreduce.model.*;
@@ -11,6 +12,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import edu.bgu.dsp.wordrelatedness.utils.Utils;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -27,11 +29,11 @@ public class RunInEMR {
     private static final String S3Jar3 = "s3n://malachi-bucket/jars/word-relatedness-job3.jar";
     //    private static final String CorpusPath = "s3n://malachi-bucket/input";
     static final String CorpusPath = "s3://datasets.elasticmapreduce/ngrams/books/20090715/eng-all/5gram/data";
-    private static final String IntermediateOutput1 = "hdfs:///intermediate_output1/";
-    private static final String IntermediateOutput2 = "hdfs:///intermediate_output2/";
-    private static final String FinalOutput = "s3n://malachi-bucket/output";
+    private static final String IntermediateOutput1 = "hdfs:///output-ngram1/";
+    private static final String IntermediateOutput2 = "hdfs:///output-ngram2/";
+    private static final String FinalOutput = "s3n://malachi-bucket/output-ngram-final";
     private static final ActionOnFailure DefaultActionOnFailure = ActionOnFailure.TERMINATE_JOB_FLOW;
-    private static final Integer InstancesCount = 2;
+    private static final Integer InstancesCount = 10;
     private static final InstanceType DefaultInstanceType = InstanceType.M1Large;
     private static final String HadoopVersion = "2.4.0";
     private static final String LogsPath = "s3n://malachi-bucket/logs/";
@@ -59,7 +61,10 @@ public class RunInEMR {
     private static void runEmr(String k) throws IOException, InterruptedException {
         int K = Integer.parseInt(k);
 
-        AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(new DefaultAWSCredentialsProviderChain());
+//        AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(new DefaultAWSCredentialsProviderChain());
+        AWSCredentials Credentials = new PropertiesCredentials(new FileInputStream(
+                "AwsCredentials.properties"));
+        AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(Credentials);
 
         HadoopJarStepConfig step1 = new HadoopJarStepConfig()
                 .withJar(S3Jar1)
@@ -127,8 +132,10 @@ public class RunInEMR {
 
     public static Map<String, Double> insertResultsToMap()
             throws IOException {
+        AWSCredentials Credentials = new PropertiesCredentials(new FileInputStream(
+                "AwsCredentials.properties"));
 
-        AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
+        AmazonS3 s3Client = new AmazonS3Client(Credentials);
         S3ObjectInputStream content = s3Client.getObject(new GetObjectRequest("malachi-bucket/10k-output", "part-r-00000")).getObjectContent();
 
         Map<String, Double> PMIresults = new HashMap();
