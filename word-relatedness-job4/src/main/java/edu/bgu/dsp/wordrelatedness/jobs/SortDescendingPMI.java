@@ -76,8 +76,6 @@ public class SortDescendingPMI extends Configured implements Tool {
             Utils.deleteDirectory(new File(args[1]));
             ToolRunner.run(new SortDescendingPMI(), args);
 
-//            List<WordsPair> Ks = Utils.GetK("resources/SortDecendingPMI/part-r-00000", 5);
-//            Utils.KsToFile(Ks);
 
             System.exit(0);
         } catch (Exception e) {
