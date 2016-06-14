@@ -10,6 +10,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -22,7 +23,13 @@ import java.io.File;
 import java.io.IOException;
 
 
+class JobPartitioner extends Partitioner<WordPair, WordPairMapWritable> {
+    public int getPartition(WordPair wordPair, WordPairMapWritable WordPairMapWritable, int numPartitions) {
+        return wordPair.getDecade().get() % numPartitions;
+    }
+}
 public class AddStarToWord extends Configured implements Tool {
+
 
     static class JobMapper extends Mapper<WordPair, LongWritable, WordPair, WordPairMapWritable> {
         // Map for writing to context
@@ -47,13 +54,12 @@ public class AddStarToWord extends Configured implements Tool {
     }
 
     /**
-     *
      *  if key == *-*
-     emit (*-*| <*-*, count>)
-     else if key == word-*
-     emit(word-*| <word-*, count>)
-     else if key == word1-word2
-     emit(word2| <word1-word2, count>, <word1-*, count>)
+     *      emit (*-*| <*-*, count>)
+     *  else if key == word-*
+     *       emit(word-*| <word-*, count>)
+     *  else if key == word1-word2
+     *       emit(word2| <word1-word2, count>, <word1-*, count>)
      */
     static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, WordPairMapWritable> {
         Text currentStarWord = null;
@@ -88,7 +94,7 @@ public class AddStarToWord extends Configured implements Tool {
 
         job.setMapperClass(JobMapper.class);
 //        job.setCombinerClass(JobCombiner.class);
-//        job.setPartitionerClass(JobPartitioner.class);
+        job.setPartitionerClass(JobPartitioner.class);
         job.setReducerClass(JobReducer.class);
 
 

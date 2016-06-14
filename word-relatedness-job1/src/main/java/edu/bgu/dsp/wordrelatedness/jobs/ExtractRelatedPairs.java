@@ -18,7 +18,6 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -192,13 +191,14 @@ public class ExtractRelatedPairs extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
-        System.out.println("!!!!!");
-        if (args.length != 2)
-            throw new IllegalArgumentException("Args error");
+        for (String s: args)
+            System.out.println(s);
+//        if (args.length != 2)
+//            throw new IllegalArgumentException("Args error");
 
         try {
             // If out dir is already exists - delete it
-            Utils.deleteDirectory(new File(args[1]));
+//            Utils.deleteDirectory(new File(args[1]));
             ToolRunner.run(new ExtractRelatedPairs(), args);
             System.exit(0);
         } catch (Exception e) {

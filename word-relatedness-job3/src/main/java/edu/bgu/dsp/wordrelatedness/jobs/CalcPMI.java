@@ -9,17 +9,23 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
 
+class JobPartitioner extends Partitioner<WordPair, MapWritable> {
+    public int getPartition(WordPair wordPair, MapWritable mapWritable, int numPartitions) {
+        return wordPair.getDecade().get() % numPartitions;
+    }
+}
 
 public class CalcPMI extends Configured implements Tool {
 
@@ -90,13 +96,14 @@ public class CalcPMI extends Configured implements Tool {
 
         job.setMapperClass(JobMapper.class);
         job.setReducerClass(JobReducer.class);
+        job.setPartitionerClass(JobPartitioner.class);
 
         job.setOutputKeyClass(WordPair.class);
         job.setOutputValueClass(DoubleWritable.class);
         job.setMapOutputValueClass(WordPairMapWritable.class);
 
         job.setInputFormatClass(SequenceFileInputFormat.class); // LZO Compressed files
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
+        job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.addInputPath(job, new Path(inputPath));
         FileOutputFormat.setOutputPath(job, new Path(outputPath));

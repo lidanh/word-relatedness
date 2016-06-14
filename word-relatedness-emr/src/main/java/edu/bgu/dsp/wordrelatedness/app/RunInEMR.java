@@ -1,29 +1,33 @@
 package edu.bgu.dsp.wordrelatedness.app;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.PropertiesCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClient;
 import com.amazonaws.services.elasticmapreduce.model.*;
 
-import java.io.FileInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by lidanh on 11/06/2016.
  */
-public class ExtractRelatedPairsEmr {
-    static final String S3Jar = "s3n://malachi-bucket/jars/ExtractRelatedPairs.jar";
-    static final String CorpusPath = "s3n://malachi-bucket/input";
-//    static final String CorpusPath = "s3://datasets.elasticmapreduce/ngrams/books/20090715/eng-all/5gram/data";
-    static final String IntermediateOutput = "hdfs:///intermediate_output/";
-    static final String FinalOutput = "s3n://malachi-bucket/output";
-    static final ActionOnFailure DefaultActionOnFailure = ActionOnFailure.TERMINATE_JOB_FLOW;
-    static final Integer InstancesCount = 10;
-    static final InstanceType DefaultInstanceType = InstanceType.M1Large;
-    static final String HadoopVersion = "2.4.0";
-    static final String LogsPath = "s3n://malachi-bucket/logs/";
+public class RunInEMR {
+    private static final String S3Jar1 = "s3n://malachi-bucket/jars/word-relatedness-job1.jar";
+    private static final String S3Jar2 = "s3n://malachi-bucket/jars/word-relatedness-job2.jar";
+    private static final String S3Jar3 = "s3n://malachi-bucket/jars/word-relatedness-job3.jar";
+//    private static final String CorpusPath = "s3n://malachi-bucket/input";
+    static final String CorpusPath = "s3://datasets.elasticmapreduce/ngrams/books/20090715/eng-all/5gram/data";
+    private static final String IntermediateOutput1 = "hdfs:///intermediate_output1/";
+    private static final String IntermediateOutput2 = "hdfs:///intermediate_output2/";
+    private static final String FinalOutput = "s3n://malachi-bucket/output";
+    private static final ActionOnFailure DefaultActionOnFailure = ActionOnFailure.TERMINATE_JOB_FLOW;
+    private static final Integer InstancesCount = 2;
+    private static final InstanceType DefaultInstanceType = InstanceType.M1Large;
+    private static final String HadoopVersion = "2.4.0";
+    private static final String LogsPath = "s3n://malachi-bucket/logs/";
 
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
@@ -46,31 +50,36 @@ public class ExtractRelatedPairsEmr {
     }
 
     private static void runEmr(String k) throws IOException, InterruptedException {
-        AWSCredentials Credentials = new PropertiesCredentials(new FileInputStream(
-                "AwsCredentials.properties"));
-        AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(Credentials);
 
+        AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(new DefaultAWSCredentialsProviderChain());
 
         HadoopJarStepConfig step1 = new HadoopJarStepConfig()
-                .withJar(S3Jar)
-                .withMainClass("edu.bgu.dsp.wordrelatedness.jobs.ExtractRelatedPairs")
-                .withArgs(CorpusPath, FinalOutput);
-//                .withArgs(CorpusPath, IntermediateOutput);
+                .withJar(S3Jar1)
+                .withArgs(CorpusPath, IntermediateOutput1);
 
-//        HadoopJarStepConfig step2 = new HadoopJarStepConfig()
-//                .withJar(S3Jar)
-//                .withMainClass("edu.bgu.dsp.wordrelatedness.jobs.AddStarToWord")
-//                .withArgs(IntermediateOutput, FinalOutput, k);
+        HadoopJarStepConfig step2 = new HadoopJarStepConfig()
+                .withJar(S3Jar2)
+                .withArgs(IntermediateOutput1, IntermediateOutput2);
+
+        HadoopJarStepConfig step3 = new HadoopJarStepConfig()
+                    .withJar(S3Jar3)
+                    .withArgs(IntermediateOutput2, FinalOutput);
 
         StepConfig step1Conf = new StepConfig()
                 .withName("step1")
                 .withHadoopJarStep(step1)
                 .withActionOnFailure(DefaultActionOnFailure);
 
-//        StepConfig step2Conf = new StepConfig()
-//                .withName("step2")
-//                .withHadoopJarStep(step2)
-//                .withActionOnFailure(DefaultActionOnFailure);
+        StepConfig step2Conf = new StepConfig()
+                .withName("step2")
+                .withHadoopJarStep(step2)
+                .withActionOnFailure(DefaultActionOnFailure);
+
+        StepConfig step3Conf = new StepConfig()
+                .withName("step3")
+                .withHadoopJarStep(step3)
+                .withActionOnFailure(DefaultActionOnFailure);
+
 
         JobFlowInstancesConfig instancesConfig = new JobFlowInstancesConfig()
                 .withInstanceCount(InstancesCount)
@@ -83,12 +92,11 @@ public class ExtractRelatedPairsEmr {
         RunJobFlowRequest runJobFlowRequest = new RunJobFlowRequest()
                 .withName("word-relatedness")
                 .withInstances(instancesConfig)
-//                .withSteps(step1Conf, step2Conf)
-                .withSteps(step1Conf)
+                .withSteps(step1Conf, step2Conf, step3Conf)
                 .withJobFlowRole("EMR_EC2_DefaultRole")
                 .withServiceRole("EMR_DefaultRole")
                 .withLogUri(LogsPath);
-
+//
         RunJobFlowResult runJobFlowResult = emrClient.runJobFlow(runJobFlowRequest);
         String jobFlowId = runJobFlowResult.getJobFlowId();
 
@@ -97,9 +105,22 @@ public class ExtractRelatedPairsEmr {
         DescribeClusterResult result = waitForCompletion(emrClient, jobFlowId, 10, TimeUnit.SECONDS);
         diagnoseClusterResult(result, jobFlowId);
 
+
     }
 
+    private static void displayTextInputStream(InputStream input)
+            throws IOException {
+        // Read one text line at a time and display.
+        BufferedReader reader = new BufferedReader(new
+                InputStreamReader(input));
+        while (true) {
+            String line = reader.readLine();
+            if (line == null) break;
 
+            System.out.println("    " + line);
+        }
+        System.out.println();
+    }
 
     //////////////////// DEBUG //////////////////////
 

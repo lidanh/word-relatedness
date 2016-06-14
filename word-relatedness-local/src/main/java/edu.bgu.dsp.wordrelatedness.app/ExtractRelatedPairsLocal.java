@@ -4,17 +4,11 @@ import edu.bgu.dsp.wordrelatedness.domain.WordsPair;
 import edu.bgu.dsp.wordrelatedness.jobs.AddStarToWord;
 import edu.bgu.dsp.wordrelatedness.jobs.CalcPMI;
 import edu.bgu.dsp.wordrelatedness.jobs.ExtractRelatedPairs;
-import edu.bgu.dsp.wordrelatedness.jobs.SortDescendingPMI;
-import edu.bgu.dsp.wordrelatedness.old.jobs.NGramsToWordPairsOld;
-import edu.bgu.dsp.wordrelatedness.old.jobs.WordPairsPMICalc;
 import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,27 +54,28 @@ public class ExtractRelatedPairsLocal {
         cJob3.setJob(job3);
 
         //////////////////////// JOB4 /////////////////////////////////
-        Job job4 = SortDescendingPMI.getJobWiring("/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000", "/home/malachi/IdeaProjects/word-relatedness/output4");
-
-        ControlledJob cJob4 = new ControlledJob(jobConfig);
-        cJob4.setJob(job4);
+//        Job job4 = SortDescendingPMI.getJobWiring("/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000", "/home/malachi/IdeaProjects/word-relatedness/output4");
+//
+//        ControlledJob cJob4 = new ControlledJob(jobConfig);
+//        cJob4.setJob(job4);
 
         ////////////////////// RUN /////////////////////////////////
         JobControl jobController = new JobControl("jobctrl");
         jobController.addJob(cJob1);
         jobController.addJob(cJob2);
         jobController.addJob(cJob3);
-        jobController.addJob(cJob4);
+//        jobController.addJob(cJob4);
         cJob2.addDependingJob(cJob1);
         cJob3.addDependingJob(cJob2);
-        cJob4.addDependingJob(cJob3);
+//        cJob4.addDependingJob(cJob3);
 
         jobController.run();
 
-        Map scores = Utils.calcFMeasure("/home/malachi/IdeaProjects/word-relatedness/output4/part-r-00000");
+        String resultFilePath = "/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000";
+        Map scores = Utils.calcFMeasure(resultFilePath);
         Utils.scoresToFile(scores);
 
-        List<WordsPair> Ks = Utils.GetK("/home/malachi/IdeaProjects/word-relatedness/output4/part-r-00000", 5);
+        List<WordsPair> Ks = Utils.GetK(resultFilePath, 5);
         Utils.KsToFile(Ks);
     }
 }
