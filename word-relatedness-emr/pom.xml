@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>edu.bgu.dsp</groupId>
-            <artifactId>word-relatedness-core</artifactId>
+            <artifactId>word-relatedness-common</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 

@@ -21,12 +21,6 @@ import org.apache.hadoop.util.ToolRunner;
 import java.io.File;
 import java.io.IOException;
 
-class JobPartitioner extends Partitioner<WordPair, MapWritable> {
-    public int getPartition(WordPair wordPair, MapWritable mapWritable, int numPartitions) {
-        return wordPair.getDecade().get() % numPartitions;
-    }
-}
-
 public class CalcPMI extends Configured implements Tool {
 
     static class JobMapper extends Mapper<WordPair, MapWritable, WordPair, MapWritable> {
@@ -86,6 +80,12 @@ public class CalcPMI extends Configured implements Tool {
                 DoubleWritable PMI = new DoubleWritable(logVal);
                 context.write(key, PMI);
             }
+        }
+    }
+
+    class JobPartitioner extends Partitioner<WordPair, MapWritable> {
+        public int getPartition(WordPair wordPair, MapWritable mapWritable, int numPartitions) {
+            return wordPair.getDecade().get() % numPartitions;
         }
     }
 

@@ -23,11 +23,6 @@ import java.io.File;
 import java.io.IOException;
 
 
-class JobPartitioner extends Partitioner<WordPair, WordPairMapWritable> {
-    public int getPartition(WordPair wordPair, WordPairMapWritable WordPairMapWritable, int numPartitions) {
-        return wordPair.getDecade().get() % numPartitions;
-    }
-}
 public class AddStarToWord extends Configured implements Tool {
 
 
@@ -84,6 +79,12 @@ public class AddStarToWord extends Configured implements Tool {
                 value.put(currentStarWord, currentStarCount);
                 context.write(W1W2, value);
             }
+        }
+    }
+
+    static class JobPartitioner extends Partitioner<WordPair, WordPairMapWritable> {
+        public int getPartition(WordPair wordPair, WordPairMapWritable WordPairMapWritable, int numPartitions) {
+            return wordPair.getDecade().get() % numPartitions;
         }
     }
 

@@ -50,29 +50,21 @@ public class ExtractRelatedPairsLocal {
         ControlledJob cJob3 = new ControlledJob(jobConfig);
         cJob3.setJob(job3);
 
-        //////////////////////// JOB4 /////////////////////////////////
-//        Job job4 = SortDescendingPMI.getJobWiring("/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000", "/home/malachi/IdeaProjects/word-relatedness/output4");
-//
-//        ControlledJob cJob4 = new ControlledJob(jobConfig);
-//        cJob4.setJob(job4);
-
         ////////////////////// RUN /////////////////////////////////
         JobControl jobController = new JobControl("jobctrl");
         jobController.addJob(cJob1);
         jobController.addJob(cJob2);
         jobController.addJob(cJob3);
-//        jobController.addJob(cJob4);
         cJob2.addDependingJob(cJob1);
         cJob3.addDependingJob(cJob2);
-//        cJob4.addDependingJob(cJob3);
 
         jobController.run();
-
-        String resultFilePath = "/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000";
-        Map scores = Utils.calcFMeasure(resultFilePath);
-        Utils.scoresToFile(scores);
-
-        List<WordsPair> Ks = Utils.GetK(resultFilePath, 5);
-        Utils.KsToFile(Ks);
+//
+//        String resultFilePath = "/home/malachi/IdeaProjects/word-relatedness/output3/part-r-00000";
+//        Map scores = Utils.calcFMeasure(resultFilePath);
+//        Utils.scoresToFile(scores);
+//
+//        List<WordsPair> Ks = Utils.GetK(resultFilePath, 5);
+//        Utils.KsToFile(Ks);
     }
 }
