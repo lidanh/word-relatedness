@@ -81,7 +81,7 @@ public class AddStarToWord extends Configured implements Tool {
         }
     }
 
-    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
+    public static Job getJobWiring(String inputPath, String outputPath) throws IOException {
         Job job = new Job(new Configuration(), AddStarToWord.class.getSimpleName());
 
         job.setJarByClass(AddStarToWord.class);

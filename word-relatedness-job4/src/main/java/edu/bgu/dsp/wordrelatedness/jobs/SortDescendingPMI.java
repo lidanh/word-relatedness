@@ -40,7 +40,7 @@ public class SortDescendingPMI extends Configured implements Tool {
         }
     }
 
-    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
+    public static Job getJobWiring(String inputPath, String outputPath) throws IOException {
         Job job = new Job(new Configuration(), SortDescendingPMI.class.getSimpleName());
 
         job.setJarByClass(SortDescendingPMI.class);

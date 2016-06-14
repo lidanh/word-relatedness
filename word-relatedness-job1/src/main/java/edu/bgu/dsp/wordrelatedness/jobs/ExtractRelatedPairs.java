@@ -162,7 +162,7 @@ public class ExtractRelatedPairs extends Configured implements Tool {
         }
     }
 
-    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
+    public static Job getJobWiring(String inputPath, String outputPath) throws IOException {
         Job job = new Job(new Configuration(), ExtractRelatedPairs.class.getSimpleName());
 
         job.setJarByClass(ExtractRelatedPairs.class);
