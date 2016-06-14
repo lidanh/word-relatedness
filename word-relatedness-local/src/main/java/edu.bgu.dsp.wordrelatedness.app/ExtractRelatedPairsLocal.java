@@ -1,6 +1,5 @@
 package edu.bgu.dsp.wordrelatedness.app;
 
-import edu.bgu.dsp.wordrelatedness.domain.WordsPair;
 import edu.bgu.dsp.wordrelatedness.jobs.AddStarToWord;
 import edu.bgu.dsp.wordrelatedness.jobs.CalcPMI;
 import edu.bgu.dsp.wordrelatedness.jobs.ExtractRelatedPairs;
@@ -12,8 +11,6 @@ import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 public class ExtractRelatedPairsLocal {
     public static void main(String[] args) throws IOException {

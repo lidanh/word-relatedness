@@ -1,16 +1,28 @@
 package edu.bgu.dsp.wordrelatedness.utils;
 
-import edu.bgu.dsp.wordrelatedness.domain.WordsPair;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
+
+class ValueComparator implements Comparator<String> {
+    Map<String, Double> base;
+
+    public ValueComparator(Map<String, Double> base) {
+        this.base = base;
+    }
+
+    // Note: this comparator imposes orderings that are inconsistent with
+    // equals.
+    public int compare(String a, String b) {
+        if (base.get(a) >= base.get(b)) {
+            return -1;
+        } else {
+            return 1;
+        } // returning 0 would merge keys
+    }
+}
 
 
 public class Utils {
@@ -32,83 +44,72 @@ public class Utils {
         return (path.delete());
     }
 
-
-    public static Map calcFMeasure(String filePath) {
+    /**
+     *
+     * @param PMIresults
+     * @return
+     *
+     * Given PMI rsults, cacl F measure for vary thresholds
+     */
+    public static Map calcFMeasure(Map<String, Double> PMIresults) {
 
         long tp = 0;
         long fp = 0;
         long tn = 0;
         long fn = 0;
 
-        Path results = Paths.get(filePath);
-        List<WordsPair> wordsPairs = new ArrayList();
-
-        Charset charset = Charset.forName("ISO-8859-1");
-        try {
-            List<String> lines = Files.readAllLines(results, charset);
-
-            for (String line : lines) {
-                if ( !line.contains("2000")){
-                    continue;
-                }
-
-                String[] score_yearPairWords = line.split("\t");
-                double score = Double.parseDouble(score_yearPairWords[0]);
-                String yearPairWords = score_yearPairWords[1];
-                String pairWords = yearPairWords.substring(5);
-                wordsPairs.add(new WordsPair(pairWords, score));
-                wordsPairs.add(new WordsPair(switchWords(pairWords), score));
-
-            }
-        } catch (IOException e) {
-            System.out.println(e);
-        }
-
 
         Map<Double, Double> Fs = new HashMap();
 
-        for (double i = 1; i < 11; i += 1) {
+        for (double threshold = 1; threshold < 11; threshold += 1) {
 
-            for (WordsPair wp : wordsPairs) {
-                if (wp.getScore() > i) {
-                    if (relatedWords.contains(wp.getPair())) {
+            for (String words : PMIresults.keySet()) {
+                if (PMIresults.get(words) > threshold) {
+                    if (relatedWords.contains(words)) {
                         // true positive
                         tp++;
-                    } else if (unrelatedWords.contains(wp.getPair())) {
+                    } else if (unrelatedWords.contains(words)) {
                         // false positive
                         fp++;
                     }
                 } else {
-                    if (relatedWords.contains(wp.getPair())) {
+                    if (relatedWords.contains(words)) {
                         // false negative
                         fn++;
-                    } else if (unrelatedWords.contains(wp.getPair())) {
+                    } else if (unrelatedWords.contains(words)) {
                         // true negative
                         tn++;
                     }
                 }
             }
 
-            Fs.put(i, calcF(tp,fp,fn,tn));
+            Fs.put(threshold, calcF(tp, fp, fn, tn));
         }
 
         return Fs;
     }
 
-    private static String switchWords(String pairWords) {
-        String[] words = pairWords.split(",");
-        return words[1] + "," + words[0];
-    }
 
+    /**
+     *
+     * @param tp
+     * @param fp
+     * @param fn
+     * @param tn
+     * @return
+     *
+     * Given params of true/false positive/negative calc F measure score
+     */
     private static double calcF(long tp, long fp, long fn, long tn) {
-        if(tp + fp ==0 || tp +fn ==0){
+        if (tp + fp == 0 || tp + fn == 0) {
             return 0;
         }
 
-        double precision =  tp / (tp + fp);;
-        double recall = tp / (tp +fn);
+        double precision = tp / (tp + fp);
 
-        if(precision + recall == 0){
+        double recall = tp / (tp + fn);
+
+        if (precision + recall == 0) {
             return 0;
         }
 
@@ -116,67 +117,97 @@ public class Utils {
     }
 
 
-    public static void scoresToFile(java.util.Map<Double, Double> scores) throws IOException {
-        FileWriter fstream;
-        BufferedWriter out;
+    /**
+     *
+     * @param PMIResults
+     * @param k
+     * @return
+     *
+     * Given PMI results get the highest k pairs for each decade
+     */
+    public static ArrayList<String> GetK(Map<String, Double> PMIResults, int k) {
+        // count for each decade k highest words pairs
+        Map<String, Integer> counters = new HashMap();
+        ArrayList<String> highestPairs = new ArrayList<>();
 
-        fstream = new FileWriter("Fmeasures.txt");
-        out = new BufferedWriter(fstream);
+        TreeMap<String, Double> sortedPMIValues = sortMapByValue(PMIResults);
 
-        Iterator<java.util.Map.Entry<Double, Double>> it = scores.entrySet().iterator();
+        for (String words : sortedPMIValues.keySet()) {
+            // get decade
+            String decade = words.substring(0, 4);
 
-        while (it.hasNext()) {
-            java.util.Map.Entry<Double, Double> pairs = it.next();
-            out.write(pairs.getKey() + "\t" + pairs.getValue() + "\n");
-        }
-        out.close();
-    }
-
-
-    public static List<WordsPair> GetK(String filePath, int k) {
-        String currentDecade = "";
-
-        Path results = Paths.get(filePath);
-
-        int count = 0;
-        List<WordsPair> wordsPairs = new ArrayList();
-
-        Charset charset = Charset.forName("ISO-8859-1");
-        try {
-            List<String> lines = Files.readAllLines(results, charset);
-
-            for (String line : lines) {
-                String[] score_yearPairWords = line.split("\t");
-                String decade = score_yearPairWords[1].substring(0, 4);
-                if (!currentDecade.equals(decade)) {
-                    currentDecade = decade;
-                    count = 0;
-                }
-                if (count < k) {
-                    double score = Double.parseDouble(score_yearPairWords[0]);
-                    String yearPairWords = score_yearPairWords[1];
-                    wordsPairs.add(new WordsPair(yearPairWords, score));
-                    count++;
-                }
+            // in first time the decade seen, insert it with value 1
+            if (counters.get(decade) == null) {
+                counters.put(decade, 1);
+            } else if (counters.get(decade) > k) {
+                // If the decade was seen more than k times, don't insert anymore
+                continue;
+            } else {
+                // else, increment the value of the decade, and add the words to the highest pairs
+                counters.put(decade, counters.get(decade) + 1);
+                highestPairs.add(words + "\t" + PMIResults.get(words));
             }
-        } catch (IOException e) {
-            System.out.println(e);
         }
 
-        return wordsPairs;
+        return highestPairs;
     }
 
-    public static void KsToFile(List<WordsPair> ks) throws IOException {
+
+    /**
+     *     Given a map, sort it by value
+     */
+    private static TreeMap<String, Double> sortMapByValue(Map<String, Double> PMIResults) {
+        ValueComparator vc = new ValueComparator(PMIResults);
+
+        TreeMap<String, Double> sorted_map = new TreeMap<String, Double>(vc);
+
+        sorted_map.putAll(PMIResults);
+
+        return sorted_map;
+    }
+
+    /**
+     *
+     * @param ks
+     * @throws IOException
+     *
+     * Write the given Ks to File Ks.txt
+     */
+    public static void KsToFile(ArrayList<String> ks) throws IOException {
         FileWriter fstream;
         BufferedWriter out;
 
         fstream = new FileWriter("Ks.txt");
         out = new BufferedWriter(fstream);
 
-        for(WordsPair wp: ks) {
-            out.write(wp.getPair()+ "\t" + wp.getScore() + "\n");
+        for (String pair : ks) {
+            out.write(pair + "\n");
         }
         out.close();
     }
-}
 
+
+    /**
+     *
+     * @param fmeasures
+     * @throws IOException
+     *
+     * Write the given Fs to file F-measuress.txt
+     */
+    public static void FsToFile(Map<Double, Double> fmeasures) throws IOException {
+
+        FileWriter fstream;
+        BufferedWriter out;
+
+        fstream = new FileWriter("F-measuress.txt");
+        out = new BufferedWriter(fstream);
+
+        for (Double threshold : fmeasures.keySet()) {
+            out.write("Threshold: " + threshold + "\t" + "Score" + fmeasures.get(threshold) + "\n");
+        }
+        out.close();
+    }
+
+
+
+}

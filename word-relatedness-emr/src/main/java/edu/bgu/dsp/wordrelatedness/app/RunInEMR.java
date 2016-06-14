@@ -4,11 +4,18 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClient;
 import com.amazonaws.services.elasticmapreduce.model.*;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import edu.bgu.dsp.wordrelatedness.utils.Utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -18,7 +25,7 @@ public class RunInEMR {
     private static final String S3Jar1 = "s3n://malachi-bucket/jars/word-relatedness-job1.jar";
     private static final String S3Jar2 = "s3n://malachi-bucket/jars/word-relatedness-job2.jar";
     private static final String S3Jar3 = "s3n://malachi-bucket/jars/word-relatedness-job3.jar";
-//    private static final String CorpusPath = "s3n://malachi-bucket/input";
+    //    private static final String CorpusPath = "s3n://malachi-bucket/input";
     static final String CorpusPath = "s3://datasets.elasticmapreduce/ngrams/books/20090715/eng-all/5gram/data";
     private static final String IntermediateOutput1 = "hdfs:///intermediate_output1/";
     private static final String IntermediateOutput2 = "hdfs:///intermediate_output2/";
@@ -50,6 +57,7 @@ public class RunInEMR {
     }
 
     private static void runEmr(String k) throws IOException, InterruptedException {
+        int K = Integer.parseInt(k);
 
         AmazonElasticMapReduceClient emrClient = new AmazonElasticMapReduceClient(new DefaultAWSCredentialsProviderChain());
 
@@ -62,8 +70,8 @@ public class RunInEMR {
                 .withArgs(IntermediateOutput1, IntermediateOutput2);
 
         HadoopJarStepConfig step3 = new HadoopJarStepConfig()
-                    .withJar(S3Jar3)
-                    .withArgs(IntermediateOutput2, FinalOutput);
+                .withJar(S3Jar3)
+                .withArgs(IntermediateOutput2, FinalOutput);
 
         StepConfig step1Conf = new StepConfig()
                 .withName("step1")
@@ -96,7 +104,7 @@ public class RunInEMR {
                 .withJobFlowRole("EMR_EC2_DefaultRole")
                 .withServiceRole("EMR_DefaultRole")
                 .withLogUri(LogsPath);
-//
+
         RunJobFlowResult runJobFlowResult = emrClient.runJobFlow(runJobFlowRequest);
         String jobFlowId = runJobFlowResult.getJobFlowId();
 
@@ -106,20 +114,41 @@ public class RunInEMR {
         diagnoseClusterResult(result, jobFlowId);
 
 
+        Map<String, Double> PMIResults = insertResultsToMap();
+
+        Map Fmeasures = Utils.calcFMeasure(PMIResults);
+        Utils.FsToFile(Fmeasures);
+
+
+        ArrayList<String> highestPairs = Utils.GetK(PMIResults, K);
+        Utils.KsToFile(highestPairs);
+
     }
 
-    private static void displayTextInputStream(InputStream input)
+    public static Map<String, Double> insertResultsToMap()
             throws IOException {
-        // Read one text line at a time and display.
-        BufferedReader reader = new BufferedReader(new
-                InputStreamReader(input));
+
+        AmazonS3 s3Client = new AmazonS3Client(new DefaultAWSCredentialsProviderChain());
+        S3ObjectInputStream content = s3Client.getObject(new GetObjectRequest("malachi-bucket/10k-output", "part-r-00000")).getObjectContent();
+
+        Map<String, Double> PMIresults = new HashMap();
+
+        // Read one text line at a time and insert to map.
+        BufferedReader reader = new BufferedReader(new InputStreamReader(content));
+
         while (true) {
             String line = reader.readLine();
             if (line == null) break;
-
-            System.out.println("    " + line);
+            String[] wordsPMI = line.split("\t");
+            PMIresults.put(wordsPMI[0], Double.parseDouble(wordsPMI[1]));
         }
-        System.out.println();
+
+        // close the content
+        content.close();
+
+        // return sorted pmi results
+        return  PMIresults;
+
     }
 
     //////////////////// DEBUG //////////////////////
@@ -136,7 +165,7 @@ public class RunInEMR {
             ClusterStatus status = result.getCluster().getStatus();
             String newState = status.getState();
             if (!state.equals(newState)) {
-                System.out.println("Cluster id "+jobFlowId+" switched from "+state+" to "+newState+".  Reason: "+status.getStateChangeReason()+".");
+                System.out.println("Cluster id " + jobFlowId + " switched from " + state + " to " + newState + ".  Reason: " + status.getStateChangeReason() + ".");
                 state = newState;
             }
             System.out.println(state);
@@ -159,7 +188,7 @@ public class RunInEMR {
                 ClusterStateChangeReasonCode.fromValue(reason.getCode());
         switch (code) {
             case ALL_STEPS_COMPLETED:
-                System.out.println("Completed EMR job "+ jobFlowId);
+                System.out.println("Completed EMR job " + jobFlowId);
                 break;
             default:
                 failEMR(jobFlowId, status);

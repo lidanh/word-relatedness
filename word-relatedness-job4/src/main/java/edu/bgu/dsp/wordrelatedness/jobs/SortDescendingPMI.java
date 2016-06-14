@@ -2,7 +2,6 @@ package edu.bgu.dsp.wordrelatedness.jobs;
 
 import edu.bgu.dsp.wordrelatedness.domain.DoubleReverseComparator;
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
-import edu.bgu.dsp.wordrelatedness.domain.WordsPair;
 import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -20,7 +19,6 @@ import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 
 public class SortDescendingPMI extends Configured implements Tool {
@@ -78,8 +76,8 @@ public class SortDescendingPMI extends Configured implements Tool {
             Utils.deleteDirectory(new File(args[1]));
             ToolRunner.run(new SortDescendingPMI(), args);
 
-            List<WordsPair> Ks = Utils.GetK("resources/SortDecendingPMI/part-r-00000", 5);
-            Utils.KsToFile(Ks);
+//            List<WordsPair> Ks = Utils.GetK("resources/SortDecendingPMI/part-r-00000", 5);
+//            Utils.KsToFile(Ks);
 
             System.exit(0);
         } catch (Exception e) {
