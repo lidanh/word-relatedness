@@ -42,6 +42,21 @@
             <artifactId>log4j-core</artifactId>
             <version>2.5</version>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-core</artifactId>
+            <version>1.10.66</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-emr</artifactId>
+            <version>1.10.66</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-ec2</artifactId>
+            <version>1.10.66</version>
+        </dependency>
     </dependencies>
 
 </project>

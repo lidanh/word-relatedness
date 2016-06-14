@@ -1,8 +1,6 @@
 package edu.bgu.dsp.wordrelatedness.jobs;
 
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,20 +27,8 @@ enum COUNTER {
     D2000
 };
 
-
-// Return first the word,* if exists, else lexicographic
-class StarComparator extends WritableComparator {
-    protected StarComparator() {
-        super(Text.class, true);
-    }
-
-    @Override
-    public int compare(WritableComparable a, WritableComparable b) {
-        return -1 * super.compare(a, b);
-    }
-}
-class OppositeComparator extends WritableComparator {
-    protected OppositeComparator() {
+class DoubleReverseComparator extends WritableComparator {
+    protected DoubleReverseComparator() {
         super(DoubleWritable.class, true);
     }
 
@@ -83,117 +69,6 @@ public class Utils {
     }
 
 
-    public static Text Map_to_string(MapWritable reduced) {
-        StringBuilder sb = new StringBuilder();
-
-        for (Writable writable : reduced.keySet()) {
-            sb.append(writable);
-            sb.append(",");
-            sb.append(reduced.get(writable));
-            sb.append("|");
-        }
-        return new Text(sb.toString());
-    }
-
-    public static String getNgram(List<String> splitted) {
-
-        String ngram = splitted.get(0).toLowerCase().replaceAll("[^a-z ]", "");
-        return ngram;
-    }
-
-    public static LongWritable getDecade(String s) {
-        int year = Integer.parseInt(s);
-        return new LongWritable((year / 10) * 10);
-    }
-
-    public static LongWritable getTimes(List<String> splitted) {
-        return new LongWritable(Integer.parseInt(splitted.get(2)));
-    }
-
-    public static List<String> getWords(String ngram) {
-        List<String> words = new ArrayList<String>(Arrays.asList(ngram.split(" ")));
-        words.removeAll(Utils.stopWords);
-        return words;
-    }
-
-    public static void mergeMaps(MapWritable reduced, MapWritable mw) {
-        for (Writable mwkey : mw.keySet()) {
-            if (reduced.containsKey(mwkey)) {
-                LongWritable new_val = new LongWritable(((LongWritable) mw.get(mwkey)).get() + ((LongWritable) reduced.get(mwkey)).get());
-                reduced.put(mwkey, new_val);
-            } else {
-                reduced.put(mwkey, mw.get(mwkey));
-            }
-        }
-    }
-
-    public static boolean isStar(String word) {
-        return word.endsWith("*");
-    }
-
-    public static String getStarWord(Text key) {
-        String keyStr = key.toString();
-        return keyStr.substring(0, keyStr.length() - 2);
-    }
-
-    public static LongWritable stringToLongWritable(String s) {
-        return new LongWritable(Integer.parseInt(s));
-    }
-
-    public static Text getKeyFromValue(MapWritable value) {
-        for (Writable key : value.keySet()) {
-            if (!key.toString().contains("*")) {
-                return (Text) key;
-            }
-        }
-        return null;
-    }
-
-    public static void updateCounter(Text key, Reducer.Context context) {
-        String decade = key.toString().substring(0, 4);
-        switch (decade) {
-            case "1900":
-                context.getCounter(COUNTER.D1900).increment(1);
-                break;
-            case "1910":
-                context.getCounter(COUNTER.D1910).increment(1);
-                break;
-            case "1920":
-                context.getCounter(COUNTER.D1920).increment(1);
-                break;
-            case "1930":
-                context.getCounter(COUNTER.D1930).increment(1);
-                break;
-            case "1940":
-                context.getCounter(COUNTER.D1940).increment(1);
-                break;
-            case "1950":
-                context.getCounter(COUNTER.D1950).increment(1);
-                break;
-            case "1960":
-                context.getCounter(COUNTER.D1960).increment(1);
-                break;
-            case "1970":
-                context.getCounter(COUNTER.D1970).increment(1);
-                break;
-            case "1980":
-                context.getCounter(COUNTER.D1980).increment(1);
-                break;
-            case "1990":
-                context.getCounter(COUNTER.D1990).increment(1);
-                break;
-            case "2000":
-                context.getCounter(COUNTER.D2000).increment(1);
-                break;
-            default:
-                break;
-        }
-    }
-
-    public static void updateNCounter(LongWritable starWordCount, Mapper.Context context) {
-        context.getCounter(COUNTER.N).increment(starWordCount.get());
-    }
-
     public static Map calcFMeasure(String filePath) {
 
         long tp = 0;
@@ -218,6 +93,8 @@ public class Utils {
                 String yearPairWords = score_yearPairWords[1];
                 String pairWords = yearPairWords.substring(5);
                 wordsPairs.add(new WordsPair(pairWords, score));
+                wordsPairs.add(new WordsPair(switchWords(pairWords), score));
+
             }
         } catch (IOException e) {
             System.out.println(e);
@@ -226,7 +103,7 @@ public class Utils {
 
         Map<Double, Double> Fs = new HashMap();
 
-        for (double i = 0.1; i < 1; i += 0.1) {
+        for (double i = 1; i < 11; i += 1) {
 
             for (WordsPair wp : wordsPairs) {
                 if (wp.score > i) {
@@ -252,6 +129,11 @@ public class Utils {
         }
 
         return Fs;
+    }
+
+    private static String switchWords(String pairWords) {
+        String[] words = pairWords.split(",");
+        return words[1] + "," + words[0];
     }
 
     private static double calcF(long tp, long fp, long fn, long tn) {

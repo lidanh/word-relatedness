@@ -150,8 +150,6 @@ public class NGramsToWordPairsOld extends Configured implements Tool {
                 c = sum;
             } else {
                 // <w, w>
-                key.setN(new LongWritable(n));
-                key.setC(new LongWritable(c));
                 context.write(key, result);
             }
         }

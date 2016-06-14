@@ -14,7 +14,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -24,10 +23,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class NGramsToWordPairs extends Configured implements Tool {
+public class ExtractRelatedPairs extends Configured implements Tool {
     private static final String WordRegex = "[a-zA-Z]*";
 
-    private static class JobMapper extends Mapper<LongWritable, Text, WordPair, LongWritable> {
+    public static class JobMapper extends Mapper<LongWritable, Text, WordPair, LongWritable> {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String[] splitted = value.toString().split("\t");
 
@@ -142,13 +141,13 @@ public class NGramsToWordPairs extends Configured implements Tool {
         }
     }
 
-    private static class JobPartitioner extends Partitioner<WordPair, LongWritable> {
+    public static class JobPartitioner extends Partitioner<WordPair, LongWritable> {
         public int getPartition(WordPair wordPair, LongWritable longWritable, int numPartitions) {
             return wordPair.getDecade().get() % numPartitions;
         }
     }
 
-    private static class JobReducer extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
+    public static class JobReducer extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
         public void reduce(WordPair key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
             // For each word, sum all its maps values, merge it to "reduced" map
@@ -163,9 +162,9 @@ public class NGramsToWordPairs extends Configured implements Tool {
     }
 
     private Job getJobWiring(String inputPath, String outputPath) throws IOException {
-        Job job = new Job(new Configuration(), NGramsToWordPairs.class.getSimpleName());
+        Job job = new Job(new Configuration(), ExtractRelatedPairs.class.getSimpleName());
 
-        job.setJarByClass(NGramsToWordPairs.class);
+        job.setJarByClass(ExtractRelatedPairs.class);
 
         job.setMapperClass(JobMapper.class);
         job.setCombinerClass(JobCombiner.class);
@@ -192,13 +191,14 @@ public class NGramsToWordPairs extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("!!!!!");
         if (args.length != 2)
             throw new IllegalArgumentException("Args error");
 
         try {
             // If out dir is already exists - delete it
             Utils.deleteDirectory(new File(args[1]));
-            ToolRunner.run(new NGramsToWordPairs(), args);
+            ToolRunner.run(new ExtractRelatedPairs(), args);
             System.exit(0);
         } catch (Exception e) {
             System.err.println(e.getMessage());
