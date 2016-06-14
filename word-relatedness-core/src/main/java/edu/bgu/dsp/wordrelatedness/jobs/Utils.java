@@ -69,50 +69,6 @@ public class Utils {
     }
 
 
-    public static Text Map_to_string(MapWritable reduced) {
-        StringBuilder sb = new StringBuilder();
-
-        for (Writable writable : reduced.keySet()) {
-            sb.append(writable);
-            sb.append(",");
-            sb.append(reduced.get(writable));
-            sb.append("|");
-        }
-        return new Text(sb.toString());
-    }
-
-    public static String getNgram(List<String> splitted) {
-
-        String ngram = splitted.get(0).toLowerCase().replaceAll("[^a-z ]", "");
-        return ngram;
-    }
-
-    public static LongWritable getDecade(String s) {
-        int year = Integer.parseInt(s);
-        return new LongWritable((year / 10) * 10);
-    }
-
-    public static LongWritable getTimes(List<String> splitted) {
-        return new LongWritable(Integer.parseInt(splitted.get(2)));
-    }
-
-    public static List<String> getWords(String ngram) {
-        List<String> words = new ArrayList<String>(Arrays.asList(ngram.split(" ")));
-        words.removeAll(Utils.stopWords);
-        return words;
-    }
-
-    public static void mergeMaps(MapWritable reduced, MapWritable mw) {
-        for (Writable mwkey : mw.keySet()) {
-            if (reduced.containsKey(mwkey)) {
-                LongWritable new_val = new LongWritable(((LongWritable) mw.get(mwkey)).get() + ((LongWritable) reduced.get(mwkey)).get());
-                reduced.put(mwkey, new_val);
-            } else {
-                reduced.put(mwkey, mw.get(mwkey));
-            }
-        }
-    }
-
     public static Map calcFMeasure(String filePath) {
 
         long tp = 0;
@@ -137,6 +93,8 @@ public class Utils {
                 String yearPairWords = score_yearPairWords[1];
                 String pairWords = yearPairWords.substring(5);
                 wordsPairs.add(new WordsPair(pairWords, score));
+                wordsPairs.add(new WordsPair(switchWords(pairWords), score));
+
             }
         } catch (IOException e) {
             System.out.println(e);
@@ -145,7 +103,7 @@ public class Utils {
 
         Map<Double, Double> Fs = new HashMap();
 
-        for (double i = 0.1; i < 1; i += 0.1) {
+        for (double i = 1; i < 11; i += 1) {
 
             for (WordsPair wp : wordsPairs) {
                 if (wp.score > i) {
@@ -171,6 +129,11 @@ public class Utils {
         }
 
         return Fs;
+    }
+
+    private static String switchWords(String pairWords) {
+        String[] words = pairWords.split(",");
+        return words[1] + "," + words[0];
     }
 
     private static double calcF(long tp, long fp, long fn, long tn) {

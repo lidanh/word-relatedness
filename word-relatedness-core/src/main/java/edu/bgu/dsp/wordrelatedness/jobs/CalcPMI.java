@@ -17,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 
 
-public class Job3 {
+public class CalcPMI {
 
     public static class Map extends Mapper<WordPair, MapWritable, WordPair, MapWritable> {
         Text currentStarWord = null;
@@ -83,7 +83,7 @@ public class Job3 {
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
 
-        Job job = new Job(conf, "Job3");
+        Job job = new Job(conf, "CalcPMI");
 
         job.setOutputKeyClass(WordPair.class);
         job.setOutputValueClass(DoubleWritable.class);

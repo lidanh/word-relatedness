@@ -33,10 +33,10 @@ public class LocalDriver {
         Job job1 = new Job(conf1, "job1");
         job1.setInputFormatClass(SequenceFileInputFormat.class);
         job1.setOutputFormatClass(SequenceFileOutputFormat.class);
-        job1.setJarByClass(NGramsToWordPairs.class);
-        job1.setMapperClass(NGramsToWordPairs.JobMapper.class);
-        job1.setReducerClass(NGramsToWordPairs.JobReducer.class);
-        job1.setPartitionerClass(NGramsToWordPairs.JobPartitioner.class);
+        job1.setJarByClass(ExtractRelatedPairs.class);
+        job1.setMapperClass(ExtractRelatedPairs.JobMapper.class);
+        job1.setReducerClass(ExtractRelatedPairs.JobReducer.class);
+        job1.setPartitionerClass(ExtractRelatedPairs.JobPartitioner.class);
         job1.setOutputKeyClass(WordPair.class);
         job1.setOutputValueClass(LongWritable.class);
 
@@ -54,9 +54,9 @@ public class LocalDriver {
         job2.setInputFormatClass(SequenceFileInputFormat.class);
         job2.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        job2.setJarByClass(Job2.class);
-        job2.setMapperClass(Job2.JobMapper.class);
-        job2.setReducerClass(Job2.JobReducer.class);
+        job2.setJarByClass(AddStarToWord.class);
+        job2.setMapperClass(AddStarToWord.JobMapper.class);
+        job2.setReducerClass(AddStarToWord.JobReducer.class);
         job2.setOutputKeyClass(WordPair.class);
         job2.setOutputValueClass(WordPairMapWritable.class);
 
@@ -79,9 +79,9 @@ public class LocalDriver {
         job3.setOutputValueClass(DoubleWritable.class);
         job3.setMapOutputValueClass(WordPairMapWritable.class);
 
-        job3.setJarByClass(Job3.class);
-        job3.setMapperClass(Job3.Map.class);
-        job3.setReducerClass(Job3.Reduce.class);
+        job3.setJarByClass(CalcPMI.class);
+        job3.setMapperClass(CalcPMI.Map.class);
+        job3.setReducerClass(CalcPMI.Reduce.class);
 
 //        job3.setSortComparatorClass(StarComparator.class);
 
@@ -101,9 +101,9 @@ public class LocalDriver {
 
         job4.setSortComparatorClass(DoubleReverseComparator.class);
 
-        job4.setJarByClass(Job4.class);
-        job4.setMapperClass(Job4.Map.class);
-        job4.setReducerClass(Job4.Reduce.class);
+        job4.setJarByClass(SortDecendingPMI.class);
+        job4.setMapperClass(SortDecendingPMI.Map.class);
+        job4.setReducerClass(SortDecendingPMI.Reduce.class);
 
 
         ControlledJob cJob4 = new ControlledJob(conf1);
@@ -112,7 +112,7 @@ public class LocalDriver {
         FileOutputFormat.setOutputPath(job4, new Path("/home/malachi/IdeaProjects/word-relatedness/output4"));
 
 
-        //////////////////////// RUN /////////////////////////////////
+        ////////////////////// RUN /////////////////////////////////
         JobControl jobctrl = new JobControl("jobctrl");
         jobctrl.addJob(cJob1);
         jobctrl.addJob(cJob2);
@@ -124,10 +124,10 @@ public class LocalDriver {
 
         jobctrl.run();
 
-        Map scores = Utils.calcFMeasure("resources/Job4/part-r-00000");
+        Map scores = Utils.calcFMeasure("/home/malachi/IdeaProjects/word-relatedness/output4/part-r-00000");
         Utils.scoresToFile(scores);
 
-        List<WordsPair> Ks = Utils.GetK("resources/Job4/part-r-00000", 5);
+        List<WordsPair> Ks = Utils.GetK("/home/malachi/IdeaProjects/word-relatedness/output4/part-r-00000", 5);
         Utils.KsToFile(Ks);
 
     }

@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 
-public class Job4 {
+public class SortDecendingPMI {
 
     public static class Map<S, I> extends Mapper<WordPair, DoubleWritable, DoubleWritable, WordPair> {
         public void map(WordPair key, DoubleWritable value, Context context) throws IOException, InterruptedException {
@@ -39,7 +39,7 @@ public class Job4 {
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();
 
-        Job job = new Job(conf, "Job4");
+        Job job = new Job(conf, "SortDecendingPMI");
 
         job.setOutputKeyClass(DoubleWritable.class);
         job.setOutputValueClass(WordPair.class);
@@ -59,7 +59,7 @@ public class Job4 {
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
         job.waitForCompletion(true);
-        List<WordsPair> Ks = Utils.GetK("resources/Job4/part-r-00000", 5);
+        List<WordsPair> Ks = Utils.GetK("resources/SortDecendingPMI/part-r-00000", 5);
         Utils.KsToFile(Ks);
 
     }

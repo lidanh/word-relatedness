@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class NGramsToWordPairs extends Configured implements Tool {
+public class ExtractRelatedPairs extends Configured implements Tool {
     private static final String WordRegex = "[a-zA-Z]*";
 
     public static class JobMapper extends Mapper<LongWritable, Text, WordPair, LongWritable> {
@@ -162,9 +162,9 @@ public class NGramsToWordPairs extends Configured implements Tool {
     }
 
     private Job getJobWiring(String inputPath, String outputPath) throws IOException {
-        Job job = new Job(new Configuration(), NGramsToWordPairs.class.getSimpleName());
+        Job job = new Job(new Configuration(), ExtractRelatedPairs.class.getSimpleName());
 
-        job.setJarByClass(NGramsToWordPairs.class);
+        job.setJarByClass(ExtractRelatedPairs.class);
 
         job.setMapperClass(JobMapper.class);
         job.setCombinerClass(JobCombiner.class);
@@ -191,13 +191,14 @@ public class NGramsToWordPairs extends Configured implements Tool {
     }
 
     public static void main(String[] args) throws Exception {
+        System.out.println("!!!!!");
         if (args.length != 2)
             throw new IllegalArgumentException("Args error");
 
         try {
             // If out dir is already exists - delete it
             Utils.deleteDirectory(new File(args[1]));
-            ToolRunner.run(new NGramsToWordPairs(), args);
+            ToolRunner.run(new ExtractRelatedPairs(), args);
             System.exit(0);
         } catch (Exception e) {
             System.err.println(e.getMessage());

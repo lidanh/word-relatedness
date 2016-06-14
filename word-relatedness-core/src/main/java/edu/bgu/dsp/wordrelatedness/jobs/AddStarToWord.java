@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 
-public class Job2 extends Configured implements Tool {
+public class AddStarToWord extends Configured implements Tool {
 
     static class JobMapper extends Mapper<WordPair, LongWritable, WordPair, WordPairMapWritable> {
         // Map for writing to context
@@ -81,13 +81,13 @@ public class Job2 extends Configured implements Tool {
     }
 
     private Job getJobWiring(String inputPath, String outputPath) throws IOException {
-        Job job = new Job(new Configuration(), Job2.class.getSimpleName());
+        Job job = new Job(new Configuration(), AddStarToWord.class.getSimpleName());
 
-        job.setJarByClass(Job2.class);
+        job.setJarByClass(AddStarToWord.class);
 
         job.setMapperClass(JobMapper.class);
-//        job.setCombinerClass(NGramsToWordPairs.JobCombiner.class);
-//        job.setPartitionerClass(NGramsToWordPairs.JobPartitioner.class);
+//        job.setCombinerClass(ExtractRelatedPairs.JobCombiner.class);
+//        job.setPartitionerClass(ExtractRelatedPairs.JobPartitioner.class);
         job.setReducerClass(JobReducer.class);
 
 
@@ -117,7 +117,7 @@ public class Job2 extends Configured implements Tool {
         try {
             // If out dir is already exists - delete it
             Utils.deleteDirectory(new File(args[1]));
-            ToolRunner.run(new Job2(), args);
+            ToolRunner.run(new AddStarToWord(), args);
             System.exit(0);
         } catch (Exception e) {
             System.err.println(e.getMessage());
