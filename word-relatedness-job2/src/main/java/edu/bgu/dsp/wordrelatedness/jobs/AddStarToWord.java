@@ -2,6 +2,7 @@ package edu.bgu.dsp.wordrelatedness.jobs;
 
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
 import edu.bgu.dsp.wordrelatedness.domain.WordPairMapWritable;
+import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -48,11 +49,11 @@ public class AddStarToWord extends Configured implements Tool {
     /**
      *
      *  if key == *-*
-             emit (*-*| <*-*, count>)
-        else if key == word-*
-             emit(word-*| <word-*, count>)
-        else if key == word1-word2
-             emit(word2| <word1-word2, count>, <word1-*, count>)
+     emit (*-*| <*-*, count>)
+     else if key == word-*
+     emit(word-*| <word-*, count>)
+     else if key == word1-word2
+     emit(word2| <word1-word2, count>, <word1-*, count>)
      */
     static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, WordPairMapWritable> {
         Text currentStarWord = null;
@@ -86,8 +87,8 @@ public class AddStarToWord extends Configured implements Tool {
         job.setJarByClass(AddStarToWord.class);
 
         job.setMapperClass(JobMapper.class);
-//        job.setCombinerClass(ExtractRelatedPairs.JobCombiner.class);
-//        job.setPartitionerClass(ExtractRelatedPairs.JobPartitioner.class);
+//        job.setCombinerClass(JobCombiner.class);
+//        job.setPartitionerClass(JobPartitioner.class);
         job.setReducerClass(JobReducer.class);
 
 

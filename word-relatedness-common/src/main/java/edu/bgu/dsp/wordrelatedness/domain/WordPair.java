@@ -1,6 +1,9 @@
 package edu.bgu.dsp.wordrelatedness.domain;
 
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -72,18 +75,6 @@ public class WordPair implements Writable, WritableComparable<WordPair> {
     public String toString() {
         return String.format("%d,%s,%s", decade.get(), w1.toString(), w2.toString());
     }
-
-//    public boolean equals(Object o) {
-//        if (this == o) return true;
-//        if (o == null || getClass() != o.getClass()) return false;
-//
-//        WordPair wordPair = (WordPair) o;
-//
-//        if (w2 != null ? !w2.equals(wordPair.w2) : wordPair.w2 != null) return false;
-//        if (w1 != null ? !w1.equals(wordPair.w1) : wordPair.w1 != null) return false;
-//
-//        return true;
-//    }
 
 
     @Override

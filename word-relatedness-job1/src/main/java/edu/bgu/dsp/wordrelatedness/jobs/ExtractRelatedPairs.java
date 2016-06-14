@@ -1,6 +1,7 @@
 package edu.bgu.dsp.wordrelatedness.jobs;
 
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
+import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -26,7 +27,7 @@ import java.util.List;
 public class ExtractRelatedPairs extends Configured implements Tool {
     private static final String WordRegex = "[a-zA-Z]*";
 
-    public static class JobMapper extends Mapper<LongWritable, Text, WordPair, LongWritable> {
+    static class JobMapper extends Mapper<LongWritable, Text, WordPair, LongWritable> {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String[] splitted = value.toString().split("\t");
 
@@ -116,7 +117,7 @@ public class ExtractRelatedPairs extends Configured implements Tool {
         }
     }
 
-    private static int getMiddleWordIndex(List<String> words) {
+    static int getMiddleWordIndex(List<String> words) {
         int middle_word_index;
         if (words.size() == 2) {
             middle_word_index = 0;
@@ -128,7 +129,7 @@ public class ExtractRelatedPairs extends Configured implements Tool {
         return middle_word_index;
     }
 
-    private static class JobCombiner extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
+    static class JobCombiner extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
         public void reduce(WordPair key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
             // For each word, sum all its maps values, merge it to "reduced" map
@@ -141,13 +142,13 @@ public class ExtractRelatedPairs extends Configured implements Tool {
         }
     }
 
-    public static class JobPartitioner extends Partitioner<WordPair, LongWritable> {
+    static class JobPartitioner extends Partitioner<WordPair, LongWritable> {
         public int getPartition(WordPair wordPair, LongWritable longWritable, int numPartitions) {
             return wordPair.getDecade().get() % numPartitions;
         }
     }
 
-    public static class JobReducer extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
+    static class JobReducer extends Reducer<WordPair, LongWritable, WordPair, LongWritable> {
         public void reduce(WordPair key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
             // For each word, sum all its maps values, merge it to "reduced" map

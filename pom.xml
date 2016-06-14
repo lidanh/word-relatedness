@@ -25,6 +25,11 @@
         <module>word-relatedness-core</module>
         <module>word-relatedness-local</module>
         <module>word-relatedness-emr</module>
+        <module>word-relatedness-common</module>
+        <module>word-relatedness-job1</module>
+        <module>word-relatedness-job2</module>
+        <module>word-relatedness-job3</module>
+        <module>word-relatedness-job4</module>
     </modules>
 
     <properties>

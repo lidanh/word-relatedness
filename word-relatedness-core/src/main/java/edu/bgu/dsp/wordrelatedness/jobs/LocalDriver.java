@@ -1,7 +1,10 @@
 package edu.bgu.dsp.wordrelatedness.jobs;
 
+import edu.bgu.dsp.wordrelatedness.domain.DoubleReverseComparator;
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
 import edu.bgu.dsp.wordrelatedness.domain.WordPairMapWritable;
+import edu.bgu.dsp.wordrelatedness.domain.WordsPair;
+import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
@@ -80,8 +83,8 @@ public class LocalDriver {
         job3.setMapOutputValueClass(WordPairMapWritable.class);
 
         job3.setJarByClass(CalcPMI.class);
-        job3.setMapperClass(CalcPMI.Map.class);
-        job3.setReducerClass(CalcPMI.Reduce.class);
+        job3.setMapperClass(CalcPMI.JobMapper.class);
+        job3.setReducerClass(CalcPMI.JobReducer.class);
 
 //        job3.setSortComparatorClass(StarComparator.class);
 
@@ -101,9 +104,9 @@ public class LocalDriver {
 
         job4.setSortComparatorClass(DoubleReverseComparator.class);
 
-        job4.setJarByClass(SortDecendingPMI.class);
-        job4.setMapperClass(SortDecendingPMI.Map.class);
-        job4.setReducerClass(SortDecendingPMI.Reduce.class);
+        job4.setJarByClass(SortDescendingPMI.class);
+        job4.setMapperClass(SortDescendingPMI.JobMapper.class);
+        job4.setReducerClass(SortDescendingPMI.JobReducer.class);
 
 
         ControlledJob cJob4 = new ControlledJob(conf1);

@@ -2,7 +2,9 @@ package edu.bgu.dsp.wordrelatedness.jobs;
 
 import edu.bgu.dsp.wordrelatedness.domain.WordPair;
 import edu.bgu.dsp.wordrelatedness.domain.WordPairMapWritable;
+import edu.bgu.dsp.wordrelatedness.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
@@ -12,14 +14,16 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import java.io.File;
 import java.io.IOException;
 
 
-public class CalcPMI {
+public class CalcPMI extends Configured implements Tool {
 
-    public static class Map extends Mapper<WordPair, MapWritable, WordPair, MapWritable> {
+    static class JobMapper extends Mapper<WordPair, MapWritable, WordPair, MapWritable> {
         Text currentStarWord = null;
         LongWritable currentStarCount = null;
 
@@ -43,7 +47,7 @@ public class CalcPMI {
     }
 
 
-    public static class Reduce extends Reducer<WordPair, WordPairMapWritable, WordPair, DoubleWritable> {
+    static class JobReducer extends Reducer<WordPair, WordPairMapWritable, WordPair, DoubleWritable> {
         long stars = 0;
         long both = 0;
         double quotient = 0;
@@ -57,7 +61,7 @@ public class CalcPMI {
             quotient = 0;
             logVal = 0;
 
-            if (key.toString().contains("*,*")) {
+            if (key.isTotalForDecade()) {
                 N = Long.parseLong(values.iterator().next().get(key).toString());
                 return;
             }
@@ -79,31 +83,47 @@ public class CalcPMI {
         }
     }
 
+    private Job getJobWiring(String inputPath, String outputPath) throws IOException {
+        Job job = new Job(new Configuration(), CalcPMI.class.getSimpleName());
 
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
+        job.setJarByClass(CalcPMI.class);
 
-        Job job = new Job(conf, "CalcPMI");
+        job.setMapperClass(JobMapper.class);
+        job.setReducerClass(JobReducer.class);
 
         job.setOutputKeyClass(WordPair.class);
         job.setOutputValueClass(DoubleWritable.class);
         job.setMapOutputValueClass(WordPairMapWritable.class);
 
-        job.setMapperClass(Map.class);
-        job.setReducerClass(Reduce.class);
-
-
-        job.setInputFormatClass(SequenceFileInputFormat.class);
+        job.setInputFormatClass(SequenceFileInputFormat.class); // LZO Compressed files
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
-        // If out dir is already exists - delete it
-        Utils.deleteDirectory(new File(args[1]));
+        FileInputFormat.addInputPath(job, new Path(inputPath));
+        FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-        FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        return job;
+    }
 
-        job.waitForCompletion(true);
+    @Override
+    public int run(String[] args) throws Exception {
+        Job job = getJobWiring(args[0], args[1]);
 
+        return job.waitForCompletion(true) ? 0 : 1;
+    }
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2)
+            throw new IllegalArgumentException("Args error");
+
+        try {
+            // If out dir is already exists - delete it
+            Utils.deleteDirectory(new File(args[1]));
+            ToolRunner.run(new CalcPMI(), args);
+            System.exit(0);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
     }
 
 }

@@ -32,17 +32,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.5</version>
-        </dependency>
-        <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-core</artifactId>
             <version>1.10.66</version>
@@ -56,6 +45,36 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-ec2</artifactId>
             <version>1.10.66</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.bgu.dsp</groupId>
+            <artifactId>word-relatedness-job1</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.bgu.dsp</groupId>
+            <artifactId>word-relatedness-job2</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.bgu.dsp</groupId>
+            <artifactId>word-relatedness-job3</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.bgu.dsp</groupId>
+            <artifactId>word-relatedness-job4</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>edu.bgu.dsp</groupId>
+            <artifactId>word-relatedness-common</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
